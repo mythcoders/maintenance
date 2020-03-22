@@ -1,0 +1,43 @@
+image: alpine:latest
+
+stages:
+  - build
+  - test
+  - release
+
+.common-before-script:
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - |
+      if [[ -z "$CI_COMMIT_TAG" ]]; then
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA}
+      else
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
+      fi
+
+build:
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  extends:
+    - .common-before-script
+  script:
+    - docker build --pull -t "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG" .
+    - docker push "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG"
+
+release:
+  image: docker:latest
+  stage: release
+  services:
+    - docker:dind
+  extends:
+    - .common-before-script
+  script:
+    - docker pull $CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG
+    - docker tag $CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - master
