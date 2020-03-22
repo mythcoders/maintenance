@@ -4,6 +4,6 @@ services:
     build:
       context: .
     volumes:
-      - .:/usr/share/nginx/html
+      - ./content:/usr/share/nginx/html
     ports:
       - "2319:80"
