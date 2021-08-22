@@ -3,7 +3,14 @@ services:
   app:
     build:
       context: .
+    container_name: maint-app
     volumes:
       - ./content:/usr/share/nginx/html
-    ports:
-      - "2319:80"
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.frontend.rule=Host:maint.mythcoders.dev'
+
+networks:
+  default:
+    name: mythcoders_dev
+    external: true
